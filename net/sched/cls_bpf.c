@@ -111,10 +111,10 @@ static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
 
 	// Accept packets from 192.168.100.10
 	if (src_ip == __constant_htonl(0xC0A8640A)) {
-		return BPF_OK; // ACCEPT packet
+		return 0; // ACCEPT packet
 	}
 
-	return -1; // DROP packet
+	return 0; // ACCEPT packet
 }
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
