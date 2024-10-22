@@ -24,7 +24,6 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/kernel.h>
-#include <linux/netdevice.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Daniel Borkmann <dborkman@redhat.com>");
@@ -83,6 +82,7 @@ static int cls_bpf_exec_opcode(int code)
 	}
 }
 
+
 static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
 	//we don't need bpf related statistics such as how oftern bpf trigger function got dispatched etc.
 	//also we don't need bpf dispatcher function __bpf_prog_run in filter.h
@@ -111,27 +111,12 @@ static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
 	struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
 	__be32 src_ip = ip->saddr; // Get source IP
 
-	// Get the interface index for ens4
-	struct net_device *dev = dev_get_by_name(&init_net, "ens4");
-	int ens4_ifindex = dev ? dev->ifindex : -1;
-	dev_put(dev);  // Release reference to net_device
-
-	// Always accept packet for any interfaces other than ens4
-	if (skb->dev && skb->dev->ifindex != ens4_ifindex) {
-		return 0; // Continue processing
+	// Accept packets from 192.168.100.10
+	if (src_ip == __constant_htonl(0xC0A8640A)) {
+		return BPF_OK; //ACCEPT packet
 	}
 
-	// If interface is ens4, accept packets from 192.168.100.10
-	if (skb->dev && skb->dev->ifindex == ens4_ifindex) {
-		if (src_ip == __constant_htonl(0xC0A8640A)) { // 192.168.100.10
-			return 0;  // ACCEPT packet
-		} else {
-			return -1; // Drop packet
-		}
-	}
-
-
-	return 0; //default is accept packet
+	return -1; //DROP packet
 }
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
