@@ -21,10 +21,6 @@
 #include <net/sock.h>
 #include <net/tc_wrapper.h>
 
-#include <linux/if_ether.h>
-#include <linux/ip.h>
-#include <linux/kernel.h>
-
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Daniel Borkmann <dborkman@redhat.com>");
 MODULE_DESCRIPTION("TC BPF based classifier");
@@ -83,10 +79,12 @@ static int cls_bpf_exec_opcode(int code)
 }
 
 
-static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
-	//we don't need bpf related statistics such as how oftern bpf trigger function got dispatched etc.
-	//also we don't need bpf dispatcher function __bpf_prog_run in filter.h
+#include <linux/if_ether.h>  // For Ethernet header structure
+#include <linux/ip.h>        // For IP header structure
+#include <linux/netfilter.h> // For BPF_OK and error handling
 
+
+static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
 	// Set up pointers to the start and end of the data
 	void *data = (void *)(long)skb->data;
 	void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
@@ -113,10 +111,10 @@ static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
 
 	// Accept packets from 192.168.100.10
 	if (src_ip == __constant_htonl(0xC0A8640A)) {
-		return BPF_OK; //ACCEPT packet
+		return BPF_OK; // ACCEPT packet
 	}
 
-	return -1; //DROP packet
+	return -1; // DROP packet
 }
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
