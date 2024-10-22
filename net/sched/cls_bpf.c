@@ -79,42 +79,43 @@ static int cls_bpf_exec_opcode(int code)
 }
 
 
-#include <linux/if_ether.h>  // For Ethernet header structure
-#include <linux/ip.h>        // For IP header structure
-
-
-static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
-	// Set up pointers to the start and end of the data
-	void *data = (void *)(long)skb->data;
-	void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
-
-	// Check for invalid Ethernet header and drop the packet
-	if (data + sizeof(struct ethhdr) > data_end) {
-		return -1; // Drop packet
-	}
-
-	struct ethhdr *eth = data;
-
-	// If not IPv4, continue processing
-	if (eth->h_proto != __constant_htons(ETH_P_IP)) {
-		return 0; // Continue processing
-	}
-
-	// Check for invalid IP header
-	if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
-		return -1; // Drop packet
-	}
-
-	struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
-	__be32 src_ip = ip->saddr; // Get source IP
-
-	// Accept packets from 192.168.100.10
-	if (src_ip == __constant_htonl(0xC0A8640A)) {
-		return BPF_OK; // ACCEPT packet
-	}
-
-	return -1; // DROP packet
-}
+//#include <linux/if_ether.h>  // For Ethernet header structure
+//#include <linux/ip.h>        // For IP header structure
+//#include <linux/netfilter.h> // For BPF_OK and error handling
+//
+//
+//static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
+//	// Set up pointers to the start and end of the data
+//	void *data = (void *)(long)skb->data;
+//	void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
+//
+//	// Check for invalid Ethernet header and drop the packet
+//	if (data + sizeof(struct ethhdr) > data_end) {
+//		return -1; // Drop packet
+//	}
+//
+//	struct ethhdr *eth = data;
+//
+//	// If not IPv4, continue processing
+//	if (eth->h_proto != __constant_htons(ETH_P_IP)) {
+//		return 0; // Continue processing
+//	}
+//
+//	// Check for invalid IP header
+//	if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
+//		return -1; // Drop packet
+//	}
+//
+//	struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
+//	__be32 src_ip = ip->saddr; // Get source IP
+//
+//	// Accept packets from 192.168.100.10
+//	if (src_ip == __constant_htonl(0xC0A8640A)) {
+//		return BPF_OK; // ACCEPT packet
+//	}
+//
+//	return -1; // DROP packet
+//}
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 				       const struct tcf_proto *tp,
@@ -136,8 +137,8 @@ TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 			/* It is safe to push/pull even if skb_shared() */
 			__skb_push(skb, skb->mac_len);
 			bpf_compute_data_pointers(skb);
-			//filter_res = bpf_prog_run(prog->filter, skb);
-			filter_res = absorb_bpf_tc_ingress(skb);
+			filter_res = bpf_prog_run(prog->filter, skb);
+//			filter_res = absorb_bpf_tc_ingress(skb);
 			__skb_pull(skb, skb->mac_len);
 		} else {
 			bpf_compute_data_pointers(skb);
