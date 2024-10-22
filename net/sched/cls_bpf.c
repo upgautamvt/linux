@@ -81,7 +81,6 @@ static int cls_bpf_exec_opcode(int code)
 
 #include <linux/if_ether.h>  // For Ethernet header structure
 #include <linux/ip.h>        // For IP header structure
-#include <linux/netfilter.h> // For BPF_OK and error handling
 
 
 static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
