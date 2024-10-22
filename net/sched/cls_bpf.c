@@ -134,21 +134,18 @@ TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 		if (tc_skip_sw(prog->gen_flags)) {
 			filter_res = prog->exts_integrated ? TC_ACT_UNSPEC : 0;
 		} else if (at_ingress) {
-			//ingress strips off link-layer headers, so we need to include them
 			/* It is safe to push/pull even if skb_shared() */
-			__skb_push(skb, skb->mac_len); //include ethernet header as well
+			__skb_push(skb, skb->mac_len);
 			bpf_compute_data_pointers(skb);
 			//filter_res = bpf_prog_run(prog->filter, skb);
 			filter_res = absorb_bpf_tc_ingress(skb);
-			__skb_pull(skb, skb->mac_len); //reset back so that ethernet frame is stripped off again
+			__skb_pull(skb, skb->mac_len);
 		} else {
-			//we don't need __skb_push/pull in situtations other than
-			//ingress, because link-layers headers are there.
 			bpf_compute_data_pointers(skb);
 			filter_res = bpf_prog_run(prog->filter, skb);
 		}
-		if (unlikely(!skb->tstamp && skb->tstamp_type))
-			skb->tstamp_type = SKB_CLOCK_REALTIME;
+		if (unlikely(!skb->tstamp && skb->mono_delivery_time))
+			skb->mono_delivery_time = 0;
 
 		if (prog->exts_integrated) {
 			res->class   = 0;
