@@ -83,38 +83,44 @@ static int cls_bpf_exec_opcode(int code)
 #include <linux/ip.h>        // For IP header structure
 #include <linux/netfilter.h> // For BPF_OK and error handling
 
-
 static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
-	// Set up pointers to the start and end of the data
-	void *data = (void *)(long)skb->data;
-	void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
+    // Set up pointers to the start and end of the data
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
 
-	// Check for invalid Ethernet header and drop the packet
-	if (data + sizeof(struct ethhdr) > data_end) {
-		return -1; // Drop packet
-	}
+    // Check for invalid Ethernet header and drop the packet
+    if (data + sizeof(struct ethhdr) > data_end) {
+        return BPF_DROP; // Drop packet
+    }
 
-	struct ethhdr *eth = data;
+    struct ethhdr *eth = data;
 
-	// If not IPv4, continue processing
-	if (eth->h_proto != __constant_htons(ETH_P_IP)) {
-		return 0; // Continue processing
-	}
+    // If not IPv4, continue processing
+    if (eth->h_proto != __constant_htons(ETH_P_IP)) {
+        return BPF_OK; // Continue processing
+    }
 
-	// Check for invalid IP header
-	if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
-		return -1; // Drop packet
-	}
+    // Check for invalid IP header
+    if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
+        return BPF_DROP; // Drop packet
+    }
 
-	struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
-	__be32 src_ip = ip->saddr; // Get source IP
+    struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
+    __be32 src_ip = ip->saddr; // Get source IP
 
-	// Accept packets from 192.168.100.10
-	if (src_ip == __constant_htonl(0xC0A8640A)) {
-		return 0; // ACCEPT packet
-	}
+    //do something time consuming
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
 
-	return 0; // ACCEPT packet
+    return BPF_OK; // ACCEPT packet
 }
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
@@ -137,7 +143,7 @@ TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 			/* It is safe to push/pull even if skb_shared() */
 			__skb_push(skb, skb->mac_len);
 			bpf_compute_data_pointers(skb);
-//			filter_res = bpf_prog_run(prog->filter, skb);
+			//filter_res = bpf_prog_run(prog->filter, skb);
 			filter_res = absorb_bpf_tc_ingress(skb);
 			__skb_pull(skb, skb->mac_len);
 		} else {
