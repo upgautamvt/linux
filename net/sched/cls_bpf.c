@@ -78,8 +78,50 @@ static int cls_bpf_exec_opcode(int code)
 	}
 }
 
-// Function prototype from your module
-extern int tc_ingress_clsact_filter(struct sk_buff *skb);
+
+#include <linux/if_ether.h>  // For Ethernet header structure
+#include <linux/ip.h>        // For IP header structure
+#include <linux/netfilter.h> // For BPF_OK and error handling
+
+static inline int absorb_bpf_tc_ingress(struct sk_buff *skb) {
+    // Set up pointers to the start and end of the data
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)(skb->data + skb->len); // Calculate the end of the data
+
+    // Check for invalid Ethernet header and drop the packet
+    if (data + sizeof(struct ethhdr) > data_end) {
+        return BPF_DROP; // Drop packet
+    }
+
+    struct ethhdr *eth = data;
+
+    // If not IPv4, continue processing
+    if (eth->h_proto != __constant_htons(ETH_P_IP)) {
+        return BPF_OK; // Continue processing
+    }
+
+    // Check for invalid IP header
+    if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
+        return BPF_DROP; // Drop packet
+    }
+
+    struct iphdr *ip = (struct iphdr *)(data + sizeof(struct ethhdr));
+    __be32 src_ip = ip->saddr; // Get source IP
+
+    //do something time consuming
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+    printk("From Kernel: Empty output\n");
+
+    return BPF_OK; // ACCEPT packet
+}
 
 TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 				       const struct tcf_proto *tp,
@@ -101,15 +143,8 @@ TC_INDIRECT_SCOPE int cls_bpf_classify(struct sk_buff *skb,
 			/* It is safe to push/pull even if skb_shared() */
 			__skb_push(skb, skb->mac_len);
 			bpf_compute_data_pointers(skb);
-			struct module *mod = find_module("tc_ingress_clsact_filter");
-			if (mod && try_module_get(mod)) {
-				filter_res = tc_ingress_clsact_filter(skb);
-				printk(KERN_INFO "tc_ingress_clsact_filter result: %d\n", filter_res);
-				module_put(mod); // Decrement the reference count
-			} else {
-				filter_res = bpf_prog_run(prog->filter, skb);
-				printk(KERN_INFO "Module is not loaded, falling back to bpf_prog_run\n");
-			}
+			//filter_res = bpf_prog_run(prog->filter, skb);
+			filter_res = absorb_bpf_tc_ingress(skb);
 			__skb_pull(skb, skb->mac_len);
 		} else {
 			bpf_compute_data_pointers(skb);
