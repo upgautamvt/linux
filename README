@@ -16,6 +16,12 @@ scripts/config --disable SYSTEM_REVOCATION_KEYS
 scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
 
+You may need to do these 4 below lines.
+sudo make prepare
+sudo make modules_prepare
+sudo make all
+sudo make modules_install
+
 make olddefconfig
 #make oldconfig
 
