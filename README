@@ -8,7 +8,9 @@ sudo apt install -y git gcc-multilib build-essential gcc g++ cpio fakeroot libnc
 git clone git@github.com:rosalab/bpfabsorb.gi
 git submodule update --init --recursive
 cd bpfabsorb/linux # linux root directory
-cat /boot/config-$(uname -r) > .config # get the .config file from your running kernel
+
+# Copy the current running kernel config to the kernel source directory
+cp /boot/config-$(uname -r) .config
 
 # do these 4 lines; otherwise make fails. This is required only if you install real linux 
 scripts/config --disable SYSTEM_TRUSTED_KEYS
@@ -16,8 +18,6 @@ scripts/config --disable SYSTEM_REVOCATION_KEYS
 scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
 
-# Copy the current running kernel config to the kernel source directory
-cp /boot/config-$(uname -r) .config
 
 # Update the .config file for the new kernel version
 make olddefconfig
