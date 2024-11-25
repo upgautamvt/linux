@@ -16,23 +16,32 @@ scripts/config --disable SYSTEM_REVOCATION_KEYS
 scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
 
+# Copy the current running kernel config to the kernel source directory
+cp /boot/config-$(uname -r) .config
+
+# Update the .config file for the new kernel version
 make olddefconfig
-#make oldconfig 
 
+# Optional: Review and change kernel configuration if needed
+make menuconfig
 
-fakeroot make -j`nproc` # compiles linux
-echo $? # make sure nothing wrong
-make headers_install
+# Build the kernel image (using multiple cores to speed up the process)
+make -j$(nproc)
 
-cd tools/lib/bpf
-make 
+# Build the kernel modules
+make modules
 
-cd tools/bpf/bpftool
-make
+# Install the kernel headers
+sudo make headers_install
 
-# go back to linux root directory
-sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
-
+# Install the kernel modules
 sudo make modules_install
+
+# Install the kernel image
 sudo make install
-reboot #  you must be able to boot with your compiled custom kernel
+
+# Update the bootloader (if necessary)
+sudo update-grub   # On Debian/Ubuntu-based systems
+
+# Reboot into the new kernel
+sudo reboot
